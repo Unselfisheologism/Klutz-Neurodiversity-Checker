@@ -334,22 +334,22 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
    const canAnalyze = (activeTab === 'upload' && !!selectedFile) || (activeTab === 'paste' && !!textAreaValue.trim());
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg">
+    <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg bg-card text-card-foreground">
       <CardHeader>
         <CardTitle className="text-center text-2xl font-semibold text-primary">NeuroCheck</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="upload" disabled={isBusy}>Upload File</TabsTrigger>
-                <TabsTrigger value="paste" disabled={isBusy}>Paste Text</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted">
+                <TabsTrigger value="upload" variant="accent" disabled={isBusy}>Upload File</TabsTrigger> {/* Use accent color */}
+                <TabsTrigger value="paste" variant="accent" disabled={isBusy}>Paste Text</TabsTrigger> {/* Use accent color */}
             </TabsList>
 
             <TabsContent value="upload">
                 <div
                   className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-md transition-colors min-h-[200px] ${ // Added min-h
-                    dragOver ? 'border-primary bg-primary/10' : 'border-border hover:border-accent'
-                  } ${selectedFile ? 'border-primary bg-accent/5' : ''} ${isBusy ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
+                    dragOver ? 'border-accent bg-accent/10' : 'border-border hover:border-accent' // Use accent for hover/drag
+                  } ${selectedFile ? 'border-accent bg-accent/5' : ''} ${isBusy ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
                   onDrop={isBusy ? undefined : handleDrop} // Disable drop when busy
                   onDragOver={isBusy ? undefined : handleDragOver} // Disable dragover when busy
                   onDragLeave={isBusy ? undefined : handleDragLeave} // Disable dragleave when busy
@@ -384,7 +384,7 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
                       {fileType === 'text' && (
                          <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                       )}
-                      <p className="text-sm font-medium truncate max-w-xs">{selectedFile.name}</p>
+                      <p className="text-sm font-medium truncate max-w-xs text-foreground">{selectedFile.name}</p> {/* Ensure text color */}
                       <p className="text-xs text-muted-foreground">({(selectedFile.size / 1024).toFixed(2)} KB)</p>
                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); resetFileState(); }} className="mt-4" disabled={isBusy}>
                         Clear Selection
@@ -392,7 +392,7 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
                     </div>
                   ) : (
                     <div className="text-center text-muted-foreground">
-                      <UploadCloud className="w-12 h-12 mx-auto mb-4" />
+                      <UploadCloud className="w-12 h-12 mx-auto mb-4 text-accent" /> {/* Use accent for icon */}
                       <p className="font-semibold">Drag & drop file here</p>
                       <p className="text-sm">or click to browse</p>
                       <p className="text-xs mt-1">or paste an image</p> {/* Updated paste hint */}
@@ -409,7 +409,7 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
                         placeholder="Paste or type your text here..."
                         value={textAreaValue}
                         onChange={(e) => setTextAreaValue(e.target.value)}
-                        className="min-h-[150px] text-base md:text-sm resize-y" // Allow vertical resize
+                        className="min-h-[150px] text-base md:text-sm resize-y bg-input text-foreground placeholder:text-muted-foreground" // Adjust styles
                         aria-label="Text input area"
                         disabled={isBusy}
                      />
@@ -433,7 +433,7 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
 
          {/* Progress bar shown only during the actual analysis API call */}
          {isLoading && (
-          <Progress value={undefined} className="w-full mt-4 h-2 animate-pulse" /> // Indeterminate progress during API call
+          <Progress value={undefined} className="w-full mt-4 h-2" /> // Indeterminate progress
         )}
 
 
@@ -455,5 +455,3 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
     </Card>
   );
 }
-
-    

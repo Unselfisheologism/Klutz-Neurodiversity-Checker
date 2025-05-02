@@ -8,7 +8,45 @@ body {
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Very Light Blue-Gray */
+    /* Dark theme as default */
+    --background: 210 15% 10%; /* Very Dark Blue */
+    --foreground: 210 10% 95%; /* Very Light Gray-Blue */
+    --card: 210 15% 15%; /* Slightly Lighter Dark Blue */
+    --card-foreground: 210 10% 95%; /* Very Light Gray-Blue */
+    --popover: 210 15% 15%; /* Slightly Lighter Dark Blue */
+    --popover-foreground: 210 10% 95%; /* Very Light Gray-Blue */
+    --primary: 210 80% 65%; /* Vibrant Blue - Adjusted for dark bg */
+    --primary-foreground: 210 10% 10%; /* Very Dark Blue */
+    --secondary: 210 10% 25%; /* Dark Gray-Blue */
+    --secondary-foreground: 210 10% 95%; /* Very Light Gray-Blue */
+    --muted: 210 10% 20%; /* Darker Gray-Blue */
+    --muted-foreground: 210 10% 60%; /* Medium Gray-Blue */
+    --accent: 30 90% 60%; /* Vibrant Orange - Adjusted for dark bg */
+    --accent-foreground: 210 10% 10%; /* Very Dark Blue */
+    --destructive: 0 70% 50%; /* Dark Red */
+    --destructive-foreground: 0 0% 98%; /* Default Light */
+    --border: 210 10% 30%; /* Medium Dark Gray-Blue Border */
+    --input: 210 10% 30%; /* Medium Dark Gray-Blue Input */
+    --ring: 210 80% 70%; /* Slightly lighter blue for focus rings */
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.5rem;
+    /* Sidebar colors for dark theme */
+    --sidebar-background: 210 15% 10%; /* Match dark background */
+    --sidebar-foreground: 210 10% 95%; /* Match dark foreground */
+    --sidebar-primary: 210 80% 65%; /* Match dark primary blue */
+    --sidebar-primary-foreground: 210 10% 10%; /* Very Dark Blue */
+    --sidebar-accent: 210 10% 25%; /* Match dark secondary */
+    --sidebar-accent-foreground: 210 10% 95%; /* Match dark foreground */
+    --sidebar-border: 210 10% 30%; /* Match dark border */
+    --sidebar-ring: 210 80% 70%; /* Match dark ring */
+  }
+  /* Define light theme variables under .light class if needed */
+  .light {
+    --background: 0 0% 100%; /* White */
     --foreground: 210 10% 20%; /* Dark Gray-Blue */
     --card: 0 0% 100%; /* White */
     --card-foreground: 210 10% 20%; /* Dark Gray-Blue */
@@ -16,11 +54,11 @@ body {
     --popover-foreground: 210 10% 20%; /* Dark Gray-Blue */
     --primary: 210 90% 50%; /* Strong Blue */
     --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 210 60% 90%; /* Light Blue */
+    --secondary: 210 60% 95%; /* Very Light Blue */
     --secondary-foreground: 210 10% 20%; /* Dark Gray-Blue */
     --muted: 210 20% 95%; /* Lighter Blue-Gray */
     --muted-foreground: 210 10% 45%; /* Medium Gray-Blue */
-    --accent: 30 90% 50%; /* Orange */
+    --accent: 30 90% 55%; /* Slightly adjusted Orange */
     --accent-foreground: 0 0% 100%; /* White */
     --destructive: 0 84.2% 60.2%; /* Default Red */
     --destructive-foreground: 0 0% 98%; /* Default Light */
@@ -32,51 +70,15 @@ body {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    /* Keep sidebar colors distinct or update them based on the new palette */
+    /* Sidebar colors for light theme */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 210 90% 50%; /* Match primary blue */
+    --sidebar-primary: 210 90% 50%; /* Match light primary blue */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 210 60% 90%; /* Match secondary light blue */
+    --sidebar-accent: 210 60% 95%; /* Match light secondary */
     --sidebar-accent-foreground: 210 10% 20%; /* Dark Gray-Blue */
-    --sidebar-border: 210 15% 90%; /* Match border */
-    --sidebar-ring: 210 90% 60%; /* Match ring */
-  }
-  .dark {
-    --background: 210 15% 10%; /* Very Dark Blue */
-    --foreground: 210 10% 95%; /* Very Light Gray-Blue */
-    --card: 210 15% 15%; /* Slightly Lighter Dark Blue */
-    --card-foreground: 210 10% 95%; /* Very Light Gray-Blue */
-    --popover: 210 15% 15%; /* Slightly Lighter Dark Blue */
-    --popover-foreground: 210 10% 95%; /* Very Light Gray-Blue */
-    --primary: 210 90% 60%; /* Slightly Lighter Blue */
-    --primary-foreground: 210 10% 10%; /* Very Dark Blue */
-    --secondary: 210 10% 25%; /* Dark Gray-Blue */
-    --secondary-foreground: 210 10% 95%; /* Very Light Gray-Blue */
-    --muted: 210 10% 20%; /* Darker Gray-Blue */
-    --muted-foreground: 210 10% 60%; /* Medium Gray-Blue */
-    --accent: 30 90% 60%; /* Slightly Lighter Orange */
-    --accent-foreground: 210 10% 10%; /* Very Dark Blue */
-    --destructive: 0 70% 50%; /* Dark Red */
-    --destructive-foreground: 0 0% 98%; /* Default Light */
-    --border: 210 10% 30%; /* Medium Dark Gray-Blue Border */
-    --input: 210 10% 30%; /* Medium Dark Gray-Blue Input */
-    --ring: 210 90% 70%; /* Even Lighter Blue for focus rings */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    /* Keep sidebar colors distinct or update them based on the new palette */
-    --sidebar-background: 210 15% 10%; /* Match dark background */
-    --sidebar-foreground: 210 10% 95%; /* Match dark foreground */
-    --sidebar-primary: 210 90% 60%; /* Match dark primary blue */
-    --sidebar-primary-foreground: 210 10% 10%; /* Very Dark Blue */
-    --sidebar-accent: 210 10% 25%; /* Match dark secondary */
-    --sidebar-accent-foreground: 210 10% 95%; /* Match dark foreground */
-    --sidebar-border: 210 10% 30%; /* Match dark border */
-    --sidebar-ring: 210 90% 70%; /* Match dark ring */
+    --sidebar-border: 210 15% 90%; /* Match light border */
+    --sidebar-ring: 210 90% 60%; /* Match light ring */
   }
 }
 
