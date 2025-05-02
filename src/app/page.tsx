@@ -1,15 +1,13 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { FileUploader } from '@/components/file-uploader';
-import { AnalysisResults, type StructuredAnalysisOutput } from '@/components/analysis-results'; // Import type
+import { AnalysisResults, type StructuredAnalysisOutput, type StructuredTextAnalysisOutput } from '@/components/analysis-results'; // Import types
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-// Removed AlertCircle import as it's handled in FileUploader now for warnings/prompts
-import { AlertTriangle } from 'lucide-react'; // Keep if used elsewhere, or remove
+import { Card } from '@/components/ui/card'; // Ensure Card is imported
+import { AlertTriangle } from 'lucide-react';
 
 // Define Puter types globally for TypeScript
 declare global {
@@ -18,12 +16,13 @@ declare global {
   }
 }
 
+// Union type for analysis results state
+type AnalysisResultType = StructuredAnalysisOutput | StructuredTextAnalysisOutput | { analysisResult: string } | null;
+
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  // fileType now reflects either the uploaded file type or 'text' if using the text area
   const [fileType, setFileType] = useState<'image' | 'text' | null>(null);
-  // Update state to hold potentially structured results
-  const [analysisResults, setAnalysisResults] = useState<StructuredAnalysisOutput | { analysisResult: string } | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResultType>(null); // Use the union type
   const [isLoading, setIsLoading] = useState(false);
   const [isPuterReady, setIsPuterReady] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
@@ -31,7 +30,6 @@ export default function Home() {
 
   // Check Puter SDK readiness and sign-in status on mount
   useEffect(() => {
-    // Give Puter SDK a moment to load
     const timer = setTimeout(() => {
       if (window.puter) {
         setIsPuterReady(true);
@@ -45,7 +43,7 @@ export default function Home() {
           }
         } catch (error) {
            console.error("Error checking Puter sign-in status:", error);
-           setIsSignedIn(false); // Assume not signed in if check fails
+           setIsSignedIn(false);
            toast({
               title: 'Puter SDK Error',
               description: 'Could not check Puter sign-in status.',
@@ -61,17 +59,16 @@ export default function Home() {
             variant: 'destructive',
           });
       }
-    }, 500); // Wait 500ms for the SDK script to potentially load
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [toast]);
 
 
-  // This handler is now primarily for tracking what the FileUploader has selected/set
   const handleFileSelect = useCallback((file: File | null, type: 'image' | 'text' | null) => {
-    setSelectedFile(file); // Keep track of file if uploaded
-    setFileType(type); // Track type (image, text file, or pasted text)
-    setAnalysisResults(null); // Clear previous results when selection changes
+    setSelectedFile(file);
+    setFileType(type);
+    setAnalysisResults(null);
   }, []);
 
  const handleManualSignIn = async () => {
@@ -81,7 +78,6 @@ export default function Home() {
     }
     try {
        await window.puter.auth.signIn();
-       // Re-check status after attempting sign-in
        const signedInStatus = window.puter.auth.isSignedIn();
        setIsSignedIn(signedInStatus);
         if (signedInStatus) {
@@ -96,12 +92,10 @@ export default function Home() {
   };
 
 
- // This function now receives the content (Data URL, file text, or pasted text) directly
  const handleAnalysisRequest = useCallback(async (
-    data: { content: string }, // Expect content (Data URL or text string)
-    type: 'image' | 'text' // Type is passed from FileUploader
+    data: { content: string },
+    type: 'image' | 'text'
   ) => {
-    // Explicitly check Puter readiness and signed-in status
     if (!isPuterReady || !window.puter) {
        toast({
           title: 'Puter SDK Not Ready',
@@ -111,7 +105,6 @@ export default function Home() {
         return;
     }
 
-    // Check sign-in status before proceeding
     const currentSignInStatus = window.puter.auth.isSignedIn();
     setIsSignedIn(currentSignInStatus);
     if (!currentSignInStatus) {
@@ -121,14 +114,13 @@ export default function Home() {
           variant: 'destructive',
         });
          console.warn("Attempting analysis without confirmed sign-in. Puter should prompt.");
-        // Don't return here; let Puter attempt to prompt on the API call
     }
 
 
     setIsLoading(true);
-    setAnalysisResults(null); // Clear previous results
+    setAnalysisResults(null);
 
-    // Updated image prompt for structured JSON output
+    // Image prompt requesting JSON
     const imagePrompt = `Analyze this image for neurodiversity-friendliness. Return the analysis ONLY as a JSON object with the following keys: "colorContrast", "visualComplexity", "patternDensity", "clarityOfInformation", "potentialChallenges", "positiveAspects", "overallSuitability". Each value should be a string providing a detailed assessment for that factor.
 
 Example JSON structure:
@@ -142,33 +134,43 @@ Example JSON structure:
   "overallSuitability": "Overall summary of suitability for neurodiverse individuals."
 }`;
 
-    // Text prompt remains the same, using the passed content
-    const textPrompt = `Analyze the following text for neurodiversity-friendliness, considering readability, clarity, structure, tone, and potential for misinterpretation. Provide a detailed overall assessment as a single string.\n\nText:\n${data.content}`;
+    // Text prompt requesting JSON
+    const textPrompt = `Analyze the following text for neurodiversity-friendliness. Return the analysis ONLY as a JSON object with the following keys: "readability", "clarity", "structure", "tone", "potentialMisinterpretation", "overallAssessment". Each value should be a string providing a detailed assessment for that factor.
+
+Example JSON structure:
+{
+  "readability": "Assessment of readability (e.g., sentence length, vocabulary)...",
+  "clarity": "Assessment of clarity and conciseness...",
+  "structure": "Assessment of organization, headings, lists...",
+  "tone": "Assessment of the tone (e.g., formal, informal, empathetic)...",
+  "potentialMisinterpretation": "Areas prone to misinterpretation...",
+  "overallAssessment": "Overall summary of neurodiversity-friendliness."
+}
+
+Text to analyze:
+${data.content}`;
 
     try {
       console.log(`Initiating Puter ${type} analysis...`);
-      let result: any = null; // Use 'any' for Puter response initially
+      let result: any = null;
+
+      const modelToUse = 'gpt-4o'; // Consistent model for potential JSON output
 
       if (type === 'image') {
-        // Puter Vision call expects prompt, imageURL (Data URL), options
         if (!data.content.startsWith('data:image') && !data.content.startsWith('http')) {
-            // It's unlikely to get non-Data URL here now, but keep check
             throw new Error("Invalid image data format for Puter Vision.");
         }
-        // Use a model capable of vision and structured output if possible (gpt-4o is good)
-        result = await window.puter.ai.chat(imagePrompt, data.content, { model: 'gpt-4o' });
+        result = await window.puter.ai.chat(imagePrompt, data.content, { model: modelToUse });
       } else if (type === 'text') {
-         // Puter text call expects prompt, options
-         result = await window.puter.ai.chat(textPrompt, { model: 'gpt-4o' });
+         result = await window.puter.ai.chat(textPrompt, { model: modelToUse });
       } else {
-         throw new Error("Invalid type for analysis"); // Should not happen if FileUploader works correctly
+         throw new Error("Invalid type for analysis");
       }
 
-      console.log("Puter API Raw Response:", result); // Log the raw response for debugging
+      console.log("Puter API Raw Response:", result);
 
-      // Extract and parse the result
       let analysisContent: string | null = null;
-      if (result) {
+       if (result) {
         if (result.message && typeof result.message.content === 'string') {
           analysisContent = result.message.content;
         } else if (typeof result.text === 'string') { // Handle older Puter SDK versions potentially
@@ -182,33 +184,40 @@ Example JSON structure:
         }
       }
 
+
       if (analysisContent && analysisContent.trim()) {
-         if (type === 'image') {
-           // Attempt to parse the JSON response for images
-           try {
-             // Clean potential markdown code blocks
-             const cleanedJsonString = analysisContent.replace(/^```json\s*|```$/g, '').trim();
-             const parsedResult = JSON.parse(cleanedJsonString) as StructuredAnalysisOutput;
-             // Basic validation to check if it looks like the expected structure
-             if (parsedResult && typeof parsedResult.overallSuitability === 'string') {
-                 console.log("Parsed Structured Analysis:", parsedResult);
-                 setAnalysisResults(parsedResult);
-             } else {
-                  throw new Error("Parsed JSON does not match expected structure.");
-             }
-           } catch (parseError) {
-             console.error("Failed to parse JSON response for image analysis:", parseError);
-              console.log("Falling back to raw text analysis:", analysisContent)
-             // Fallback: If JSON parsing fails, treat it as a single string result
-             setAnalysisResults({ analysisResult: analysisContent });
-           }
-         } else {
-           // For text analysis (from file or textarea), set the result as a simple string
-           console.log("Extracted Text Analysis:", analysisContent);
-           setAnalysisResults({ analysisResult: analysisContent });
+         // Clean potential markdown code blocks and attempt JSON parsing
+         const cleanedJsonString = analysisContent.replace(/^```json\s*|```$/g, '').trim();
+         let parsedResult: any = null;
+         let parseError: Error | null = null;
+
+         try {
+             parsedResult = JSON.parse(cleanedJsonString);
+         } catch (e) {
+            parseError = e as Error;
+            console.warn(`Failed to parse API response as JSON for ${type}:`, parseError);
          }
+
+         if (parsedResult && typeof parsedResult === 'object') {
+             // Check if it matches the expected structure based on type
+             if (type === 'image' && typeof parsedResult.overallSuitability === 'string') {
+                 console.log("Parsed Structured Image Analysis:", parsedResult);
+                 setAnalysisResults(parsedResult as StructuredAnalysisOutput);
+             } else if (type === 'text' && typeof parsedResult.overallAssessment === 'string') {
+                 console.log("Parsed Structured Text Analysis:", parsedResult);
+                 setAnalysisResults(parsedResult as StructuredTextAnalysisOutput);
+             } else {
+                  // Parsed JSON doesn't match expected structure, fallback to raw text
+                  console.log("Parsed JSON did not match expected structure. Falling back to raw text:", analysisContent);
+                  setAnalysisResults({ analysisResult: analysisContent });
+             }
+         } else {
+            // Parsing failed or result wasn't an object, treat as a single string result
+            console.log(`Setting analysis result as raw text for ${type}:`, analysisContent);
+            setAnalysisResults({ analysisResult: analysisContent });
+         }
+
       } else {
-         // Handle cases where extraction failed or content is empty
          let fallbackText = 'Analysis returned an unexpected or empty result.';
           if (typeof result === 'object' && result !== null) {
             try { fallbackText = `Received unexpected object: ${JSON.stringify(result)}`; } catch { fallbackText = 'Received an unparseable object response.'; }
@@ -218,16 +227,14 @@ Example JSON structure:
           throw new Error(fallbackText);
       }
 
-
     } catch (error) {
       console.error('Puter Analysis Error:', error);
-       // Check if the error message suggests an authentication issue
        const errorMsg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
        let toastDescription = error instanceof Error ? error.message : 'An unknown error occurred during analysis.';
 
        if (errorMsg.includes('auth') || errorMsg.includes('sign in') || errorMsg.includes('permission') || errorMsg.includes('login')) {
             toastDescription = 'Authentication failed or permission denied. Please ensure you are signed into Puter and try again.';
-            setIsSignedIn(false); // Update sign-in state if auth error occurs
+            setIsSignedIn(false);
        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
            toastDescription = 'A network error occurred. Please check your connection and try again.'
        } else if (errorMsg.includes('model')) {
@@ -239,7 +246,7 @@ Example JSON structure:
         description: toastDescription,
         variant: 'destructive',
       });
-       setAnalysisResults(null); // Ensure results are cleared on error
+       setAnalysisResults(null);
     } finally {
       setIsLoading(false);
     }
@@ -249,12 +256,9 @@ Example JSON structure:
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 md:p-12 lg:p-24 bg-background">
        <div className="w-full flex flex-col items-center space-y-8">
-        {/* SDK readiness warning moved inside FileUploader */}
-        {/* Sign-in prompt moved inside FileUploader */}
-
         <FileUploader
-            onFileSelect={handleFileSelect} // Primarily for tracking state now
-            onAnalysisRequest={handleAnalysisRequest} // Core analysis trigger
+            onFileSelect={handleFileSelect}
+            onAnalysisRequest={handleAnalysisRequest}
             isLoading={isLoading}
         />
 
@@ -262,15 +266,10 @@ Example JSON structure:
              <Skeleton className="w-full max-w-lg h-64 rounded-lg mt-8" />
         )}
 
-
         {!isLoading && analysisResults && (
-          // Pass the potentially structured results to the component
-          // analysisType is now set by handleFileSelect, reflecting the source (file or text)
           <AnalysisResults results={analysisResults} analysisType={fileType} />
         )}
       </div>
     </main>
   );
 }
-
-    
