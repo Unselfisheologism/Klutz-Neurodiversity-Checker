@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -7,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+// Removed AlertCircle import as it's handled in FileUploader now for warnings/prompts
+import { AlertTriangle } from 'lucide-react'; // Keep if used elsewhere, or remove
 
 // Define Puter types globally for TypeScript
 declare global {
@@ -18,6 +20,7 @@ declare global {
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // fileType now reflects either the uploaded file type or 'text' if using the text area
   const [fileType, setFileType] = useState<'image' | 'text' | null>(null);
   // Update state to hold potentially structured results
   const [analysisResults, setAnalysisResults] = useState<StructuredAnalysisOutput | { analysisResult: string } | null>(null);
@@ -37,8 +40,6 @@ export default function Home() {
           setIsSignedIn(signedInStatus);
           if (!signedInStatus) {
             console.log("Puter: User is not signed in.");
-            // Optionally prompt user to sign in if needed immediately,
-            // but Puter should prompt automatically on API call.
           } else {
              console.log("Puter: User is signed in.");
           }
@@ -66,10 +67,11 @@ export default function Home() {
   }, [toast]);
 
 
+  // This handler is now primarily for tracking what the FileUploader has selected/set
   const handleFileSelect = useCallback((file: File | null, type: 'image' | 'text' | null) => {
-    setSelectedFile(file);
-    setFileType(type);
-    setAnalysisResults(null); // Clear previous results when a new file is selected
+    setSelectedFile(file); // Keep track of file if uploaded
+    setFileType(type); // Track type (image, text file, or pasted text)
+    setAnalysisResults(null); // Clear previous results when selection changes
   }, []);
 
  const handleManualSignIn = async () => {
@@ -94,9 +96,10 @@ export default function Home() {
   };
 
 
+ // This function now receives the content (Data URL, file text, or pasted text) directly
  const handleAnalysisRequest = useCallback(async (
-    data: { content: string }, // Expect content (Data URL or text)
-    type: 'image' | 'text'
+    data: { content: string }, // Expect content (Data URL or text string)
+    type: 'image' | 'text' // Type is passed from FileUploader
   ) => {
     // Explicitly check Puter readiness and signed-in status
     if (!isPuterReady || !window.puter) {
@@ -117,10 +120,8 @@ export default function Home() {
           description: 'Please sign into Puter to perform analysis.',
           variant: 'destructive',
         });
-        // Optionally trigger manual sign-in here or rely on Puter's automatic prompt
-        // await handleManualSignIn(); // Example: Trigger manually if preferred
-        // return; // Stop if not signed in, Puter's auto-prompt might still trigger on the API call itself
          console.warn("Attempting analysis without confirmed sign-in. Puter should prompt.");
+        // Don't return here; let Puter attempt to prompt on the API call
     }
 
 
@@ -141,16 +142,17 @@ Example JSON structure:
   "overallSuitability": "Overall summary of suitability for neurodiverse individuals."
 }`;
 
-    const textPrompt = `Analyze the following text for neurodiversity-friendliness, considering readability, clarity, structure, tone, and potential for misinterpretation. Provide a detailed overall assessment as a single string.\n\nText: ${type === 'text' ? data.content : ''}`;
+    // Text prompt remains the same, using the passed content
+    const textPrompt = `Analyze the following text for neurodiversity-friendliness, considering readability, clarity, structure, tone, and potential for misinterpretation. Provide a detailed overall assessment as a single string.\n\nText:\n${data.content}`;
 
     try {
       console.log(`Initiating Puter ${type} analysis...`);
       let result: any = null; // Use 'any' for Puter response initially
 
       if (type === 'image') {
-        // Puter Vision call expects prompt, imageURL, options
-        // Ensure data.content is a valid Data URL or accessible public URL for images
+        // Puter Vision call expects prompt, imageURL (Data URL), options
         if (!data.content.startsWith('data:image') && !data.content.startsWith('http')) {
+            // It's unlikely to get non-Data URL here now, but keep check
             throw new Error("Invalid image data format for Puter Vision.");
         }
         // Use a model capable of vision and structured output if possible (gpt-4o is good)
@@ -159,7 +161,7 @@ Example JSON structure:
          // Puter text call expects prompt, options
          result = await window.puter.ai.chat(textPrompt, { model: 'gpt-4o' });
       } else {
-         throw new Error("Invalid data or type for analysis");
+         throw new Error("Invalid type for analysis"); // Should not happen if FileUploader works correctly
       }
 
       console.log("Puter API Raw Response:", result); // Log the raw response for debugging
@@ -169,7 +171,7 @@ Example JSON structure:
       if (result) {
         if (result.message && typeof result.message.content === 'string') {
           analysisContent = result.message.content;
-        } else if (typeof result.text === 'string') {
+        } else if (typeof result.text === 'string') { // Handle older Puter SDK versions potentially
           analysisContent = result.text;
         } else if (typeof result === 'string') {
            analysisContent = result;
@@ -201,7 +203,7 @@ Example JSON structure:
              setAnalysisResults({ analysisResult: analysisContent });
            }
          } else {
-           // For text analysis, set the result as a simple string
+           // For text analysis (from file or textarea), set the result as a simple string
            console.log("Extracted Text Analysis:", analysisContent);
            setAnalysisResults({ analysisResult: analysisContent });
          }
@@ -223,7 +225,7 @@ Example JSON structure:
        const errorMsg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
        let toastDescription = error instanceof Error ? error.message : 'An unknown error occurred during analysis.';
 
-       if (errorMsg.includes('auth') || errorMsg.includes('sign in') || errorMsg.includes('permission')) {
+       if (errorMsg.includes('auth') || errorMsg.includes('sign in') || errorMsg.includes('permission') || errorMsg.includes('login')) {
             toastDescription = 'Authentication failed or permission denied. Please ensure you are signed into Puter and try again.';
             setIsSignedIn(false); // Update sign-in state if auth error occurs
        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
@@ -247,35 +249,12 @@ Example JSON structure:
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 md:p-12 lg:p-24 bg-background">
        <div className="w-full flex flex-col items-center space-y-8">
-        {/* Show warning if Puter SDK isn't ready */}
-        {isPuterReady === false && (
-            <Card className="w-full max-w-lg bg-destructive/10 border-destructive text-destructive-foreground p-4">
-                <div className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
-                    <span className="font-semibold">Puter SDK not loaded. Analysis is unavailable. Please refresh.</span>
-                </div>
-            </Card>
-        )}
-
-         {/* Show sign-in prompt if Puter is ready but user isn't signed in */}
-         {isPuterReady && isSignedIn === false && (
-            <Card className="w-full max-w-lg bg-yellow-100 border-yellow-500 text-yellow-900 p-4 dark:bg-yellow-900/30 dark:border-yellow-700 dark:text-yellow-200">
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <AlertCircle className="h-6 w-6 shrink-0" />
-                    <div className="flex-grow text-center sm:text-left">
-                        <p className="font-semibold">Sign in Required</p>
-                        <p className="text-sm">Please sign in with your Puter account to analyze content.</p>
-                    </div>
-                    <Button onClick={handleManualSignIn} variant="outline" size="sm" className="bg-background hover:bg-accent dark:bg-foreground dark:text-background dark:hover:bg-accent dark:hover:text-foreground">
-                        Sign In with Puter
-                    </Button>
-                </div>
-            </Card>
-        )}
+        {/* SDK readiness warning moved inside FileUploader */}
+        {/* Sign-in prompt moved inside FileUploader */}
 
         <FileUploader
-            onFileSelect={handleFileSelect}
-            onAnalysisRequest={handleAnalysisRequest}
+            onFileSelect={handleFileSelect} // Primarily for tracking state now
+            onAnalysisRequest={handleAnalysisRequest} // Core analysis trigger
             isLoading={isLoading}
         />
 
@@ -286,9 +265,12 @@ Example JSON structure:
 
         {!isLoading && analysisResults && (
           // Pass the potentially structured results to the component
+          // analysisType is now set by handleFileSelect, reflecting the source (file or text)
           <AnalysisResults results={analysisResults} analysisType={fileType} />
         )}
       </div>
     </main>
   );
 }
+
+    
