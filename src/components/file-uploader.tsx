@@ -341,8 +341,8 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted">
-                <TabsTrigger value="upload" variant="accent" disabled={isBusy}>Upload File</TabsTrigger> {/* Use accent color */}
-                <TabsTrigger value="paste" variant="accent" disabled={isBusy}>Paste Text</TabsTrigger> {/* Use accent color */}
+                <TabsTrigger value="upload" variant="accent" disabled={isBusy}>Upload File</TabsTrigger>
+                <TabsTrigger value="paste" variant="accent" disabled={isBusy}>Paste Text</TabsTrigger>
             </TabsList>
 
             <TabsContent value="upload">
@@ -446,11 +446,13 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
            {isLoading ? 'Analyzing...' : isReadingFile ? 'Preparing...' : 'Analyze with Puter AI'}
         </Button>
          {/* Inform user about Puter authentication */}
+         {/* REMOVED: This paragraph is no longer needed
          {!isBusy && !canAnalyze && (
             <p className="text-xs text-muted-foreground text-center mt-4">
               Select a file or paste text to analyze. Analysis uses your Puter account.
             </p>
           )}
+          */}
       </CardContent>
     </Card>
   );
