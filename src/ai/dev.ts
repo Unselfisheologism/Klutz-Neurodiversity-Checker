@@ -1,1 +1,2 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/analyze-image-neurodiversity.ts';
+import '@/ai/flows/analyze-text-neurodiversity.ts';
