@@ -336,13 +336,13 @@ export function FileUploader({ onFileSelect, onAnalysisRequest, isLoading }: Fil
   return (
     <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg bg-card text-card-foreground">
       <CardHeader>
-        <CardTitle className="text-center text-2xl font-semibold text-primary">NeuroCheck</CardTitle>
+        <CardTitle className="text-center text-2xl font-semibold text-primary">Klutz Neuro Check</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted">
-                <TabsTrigger value="upload" variant="accent" disabled={isBusy}>Upload File</TabsTrigger>
-                <TabsTrigger value="paste" variant="accent" disabled={isBusy}>Paste Text</TabsTrigger>
+                <TabsTrigger value="upload" variant="orange" disabled={isBusy}>Upload File</TabsTrigger>
+                <TabsTrigger value="paste" variant="orange" disabled={isBusy}>Paste Text</TabsTrigger>
             </TabsList>
 
             <TabsContent value="upload">

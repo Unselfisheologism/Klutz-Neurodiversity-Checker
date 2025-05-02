@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'NeuroCheck',
+  title: 'Klutz Neuro Check',
   description: 'Check content for neurodiversity-friendliness',
 };
 
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
        <head>
          {/* Load Puter.js SDK */}
          <Script src="https://js.puter.com/v2/" strategy="beforeInteractive" />
