@@ -6,7 +6,7 @@ import { AnalysisResults, type StructuredAnalysisOutput, type StructuredTextAnal
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card'; // Ensure Card is imported
+import { Card } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
 
 // Define Puter types globally for TypeScript
@@ -270,6 +270,11 @@ ${data.content}`;
           <AnalysisResults results={analysisResults} analysisType={fileType} />
         )}
       </div>
+
+      {/* Footer */}
+       <footer className="mt-auto pt-8 text-center text-muted-foreground text-sm">
+         <p>© 2025 Klutz. All rights reserved.</p>
+       </footer>
     </main>
   );
 }
