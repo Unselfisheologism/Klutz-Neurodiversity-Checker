@@ -2,11 +2,11 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { FileUploader } from '@/components/file-uploader';
-import { AnalysisResults } from '@/components/analysis-results';
+import { AnalysisResults, type StructuredAnalysisOutput } from '@/components/analysis-results'; // Import type
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card'; // Import Card component
+import { Card } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
 // Define Puter types globally for TypeScript
@@ -15,15 +15,12 @@ declare global {
     puter: any; // Use 'any' for simplicity, or define a more specific type if needed
   }
 }
-// Define expected analysis output structure
-type AnalysisOutput = {
-  analysisResult: string;
-};
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<'image' | 'text' | null>(null);
-  const [analysisResults, setAnalysisResults] = useState<AnalysisOutput | null>(null);
+  // Update state to hold potentially structured results
+  const [analysisResults, setAnalysisResults] = useState<StructuredAnalysisOutput | { analysisResult: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPuterReady, setIsPuterReady] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState<boolean | null>(null);
@@ -130,8 +127,21 @@ export default function Home() {
     setIsLoading(true);
     setAnalysisResults(null); // Clear previous results
 
-    const imagePrompt = `Analyze this image for neurodiversity-friendliness, considering aspects like color contrast, visual complexity, and pattern density. Provide a detailed assessment of its suitability for individuals with neurodevelopmental conditions. Be specific about the elements that may pose challenges or be beneficial.`;
-    const textPrompt = `Analyze the following text for neurodiversity-friendliness, considering readability, clarity, and potential for misinterpretation. Provide an overall assessment.\n\nText: ${type === 'text' ? data.content : ''}`;
+    // Updated image prompt for structured JSON output
+    const imagePrompt = `Analyze this image for neurodiversity-friendliness. Return the analysis ONLY as a JSON object with the following keys: "colorContrast", "visualComplexity", "patternDensity", "clarityOfInformation", "potentialChallenges", "positiveAspects", "overallSuitability". Each value should be a string providing a detailed assessment for that factor.
+
+Example JSON structure:
+{
+  "colorContrast": "Assessment of color contrast...",
+  "visualComplexity": "Assessment of visual complexity...",
+  "patternDensity": "Assessment of pattern density...",
+  "clarityOfInformation": "Assessment of how clearly information is presented...",
+  "potentialChallenges": "Specific elements that might be challenging...",
+  "positiveAspects": "Specific elements that are beneficial...",
+  "overallSuitability": "Overall summary of suitability for neurodiverse individuals."
+}`;
+
+    const textPrompt = `Analyze the following text for neurodiversity-friendliness, considering readability, clarity, structure, tone, and potential for misinterpretation. Provide a detailed overall assessment as a single string.\n\nText: ${type === 'text' ? data.content : ''}`;
 
     try {
       console.log(`Initiating Puter ${type} analysis...`);
@@ -143,6 +153,7 @@ export default function Home() {
         if (!data.content.startsWith('data:image') && !data.content.startsWith('http')) {
             throw new Error("Invalid image data format for Puter Vision.");
         }
+        // Use a model capable of vision and structured output if possible (gpt-4o is good)
         result = await window.puter.ai.chat(imagePrompt, data.content, { model: 'gpt-4o' });
       } else if (type === 'text') {
          // Puter text call expects prompt, options
@@ -153,50 +164,58 @@ export default function Home() {
 
       console.log("Puter API Raw Response:", result); // Log the raw response for debugging
 
-      // Improved response extraction logic
-      let analysisText: string | null = null;
+      // Extract and parse the result
+      let analysisContent: string | null = null;
       if (result) {
-        // Primary structure (chat completions)
         if (result.message && typeof result.message.content === 'string') {
-          analysisText = result.message.content;
-        }
-        // Alternative structure (direct text response?)
-        else if (typeof result.text === 'string') {
-          analysisText = result.text;
-        }
-        // Fallback: if the result itself is a string
-        else if (typeof result === 'string') {
-          analysisText = result;
-        }
-         // Fallback: check for common error message structures
-         else if (result.error && typeof result.error === 'string') {
+          analysisContent = result.message.content;
+        } else if (typeof result.text === 'string') {
+          analysisContent = result.text;
+        } else if (typeof result === 'string') {
+           analysisContent = result;
+        } else if (result.error && typeof result.error === 'string') {
            throw new Error(`Puter API Error: ${result.error}`);
-         } else if (result.message && typeof result.message === 'string' && result.message.toLowerCase().includes('error')) {
+        } else if (result.message && typeof result.message === 'string' && result.message.toLowerCase().includes('error')) {
              throw new Error(`Puter API Message: ${result.message}`);
-         }
+        }
       }
 
-
-      if (analysisText && analysisText.trim()) {
-         console.log("Extracted Analysis Text:", analysisText);
-         setAnalysisResults({ analysisResult: analysisText });
-      } else {
-         // Attempt to parse if it's an object without expected fields
-         let fallbackText = 'Analysis returned an unexpected or empty result.';
-         if (typeof result === 'object' && result !== null) {
+      if (analysisContent && analysisContent.trim()) {
+         if (type === 'image') {
+           // Attempt to parse the JSON response for images
            try {
-             fallbackText = `Received unexpected object: ${JSON.stringify(result)}`;
-           } catch {
-             fallbackText = 'Received an unparseable object response.';
+             // Clean potential markdown code blocks
+             const cleanedJsonString = analysisContent.replace(/^```json\s*|```$/g, '').trim();
+             const parsedResult = JSON.parse(cleanedJsonString) as StructuredAnalysisOutput;
+             // Basic validation to check if it looks like the expected structure
+             if (parsedResult && typeof parsedResult.overallSuitability === 'string') {
+                 console.log("Parsed Structured Analysis:", parsedResult);
+                 setAnalysisResults(parsedResult);
+             } else {
+                  throw new Error("Parsed JSON does not match expected structure.");
+             }
+           } catch (parseError) {
+             console.error("Failed to parse JSON response for image analysis:", parseError);
+              console.log("Falling back to raw text analysis:", analysisContent)
+             // Fallback: If JSON parsing fails, treat it as a single string result
+             setAnalysisResults({ analysisResult: analysisContent });
            }
-         } else if (result === null || result === undefined) {
-             fallbackText = 'Analysis returned null or undefined.'
          } else {
-             fallbackText = `Analysis returned unexpected type: ${typeof result}`;
+           // For text analysis, set the result as a simple string
+           console.log("Extracted Text Analysis:", analysisContent);
+           setAnalysisResults({ analysisResult: analysisContent });
          }
-         console.error("Unexpected or Empty API Response:", result);
-         throw new Error(fallbackText);
+      } else {
+         // Handle cases where extraction failed or content is empty
+         let fallbackText = 'Analysis returned an unexpected or empty result.';
+          if (typeof result === 'object' && result !== null) {
+            try { fallbackText = `Received unexpected object: ${JSON.stringify(result)}`; } catch { fallbackText = 'Received an unparseable object response.'; }
+          } else if (result === null || result === undefined) { fallbackText = 'Analysis returned null or undefined.' }
+          else { fallbackText = `Analysis returned unexpected type: ${typeof result}`; }
+          console.error("Unexpected or Empty API Response:", result);
+          throw new Error(fallbackText);
       }
+
 
     } catch (error) {
       console.error('Puter Analysis Error:', error);
@@ -266,6 +285,7 @@ export default function Home() {
 
 
         {!isLoading && analysisResults && (
+          // Pass the potentially structured results to the component
           <AnalysisResults results={analysisResults} analysisType={fileType} />
         )}
       </div>
